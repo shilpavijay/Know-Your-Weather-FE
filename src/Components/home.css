@@ -14,5 +14,11 @@
     background-color: whitesmoke;
   }
   
+  .main {
+    margin-top: 10px;
+  }
   
+  .weather_info {
+    margin-top: 50px;
+  }
   

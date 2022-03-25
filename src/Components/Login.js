@@ -3,31 +3,52 @@ import { Col, Container, Form, Row, Button } from "react-bootstrap";
 import "./login.css";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
+import * as Sentry from "@sentry/react";
+import { BrowserTracing } from "@sentry/tracing";
+
+Sentry.init({
+  dsn: "https://3539b88db17548dcb4313fb3c2e353c7@o1174977.ingest.sentry.io/6271485",
+  integrations: [new BrowserTracing()],
+  tracesSampleRate: 1.0,
+});
+
+function setUrl() {
+  let base_url;
+  if (process.env.NODE_ENV === "development") {
+    base_url = process.env.REACT_APP_LOCAL_BASE_URL;
+  } else {
+    base_url = process.env.REACT_APP_PROD_BASE_URL;
+  }
+  return base_url;
+}
 
 function Login() {
   const [isValidUser, setIsValidUser] = useState(false);
-  let expiredAt = new Date(new Date().getTime() + 60000 * 20);
+  let expire_time = parseInt(process.env.REACT_APP_EXPIRY);
+  let expiredAt = new Date(new Date().getTime() + expire_time);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const user = event.target.username.value;
-    const pwd = event.target.password.value;
+    const username = event.target.username.value || " ";
+    const password = event.target.password.value || " ";
 
     axios
-      .get("http://127.0.0.1:8000/api/v1/login", {
-        params: { username: user, password: pwd },
+      .get(setUrl() + "api/v1/login", {
+        params: { username, password },
       })
       .then((res) => {
         if (res.status === 200) {
           setIsValidUser(true);
           sessionStorage.setItem("isValidUser", "true");
           sessionStorage.setItem("expiry", expiredAt.toISOString());
+          Sentry.captureMessage("Get request successful");
         }
       })
+
       .catch(function (error) {
         if (error.response) {
-          console.log(error.response.data);
-          console.log(error.response.status);
+          Sentry.captureException(error.response.data);
+          Sentry.captureException(error.response.status);
           alert("Invalid Credentials. Please Sign up or try again");
           window.location.reload();
         }
@@ -40,13 +61,13 @@ function Login() {
 
   const handleSignup = (event) => {
     event.preventDefault();
-    const username = event.target.username1.value;
-    const password = event.target.password1.value;
-    const email = event.target.email1.value;
+    const username = event.target.username1.value || " ";
+    const password = event.target.password1.value || " ";
+    const email = event.target.email1.value || " ";
 
     axios
-      .get("http://127.0.0.1:8000/api/v1/signup", {
-        params: { username: username, password: password, email: email },
+      .get(setUrl() + "api/v1/signup", {
+        params: { username, password, email },
       })
       .then((res) => {
         console.log(res.status);
@@ -57,8 +78,8 @@ function Login() {
       })
       .catch(function (error) {
         if (error.response) {
-          console.log(error.response.data);
-          console.log(error.response.status);
+          Sentry.captureException(error.response.data);
+          Sentry.captureException(error.response.status);
           alert("Account already exists. Please Login!");
           window.location.reload();
         }
@@ -102,7 +123,6 @@ function Login() {
           </Col>
 
           <Col xs={2}></Col>
-
           <Col xs={5}>
             <Form onSubmit={handleSignup}>
               <h5 className="title">{"SIGN UP"}</h5>

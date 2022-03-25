@@ -11,6 +11,24 @@ import {
 import "./home.css";
 import axios from "axios";
 import { Navigate } from "react-router-dom";
+import * as Sentry from "@sentry/react";
+import { BrowserTracing } from "@sentry/tracing";
+
+Sentry.init({
+  dsn: "https://3539b88db17548dcb4313fb3c2e353c7@o1174977.ingest.sentry.io/6271485",
+  integrations: [new BrowserTracing()],
+  tracesSampleRate: 1.0,
+});
+
+function setUrl() {
+  let base_url;
+  if (process.env.NODE_ENV === "development") {
+    base_url = process.env.REACT_APP_LOCAL_BASE_URL;
+  } else {
+    base_url = process.env.REACT_APP_PROD_BASE_URL;
+  }
+  return base_url;
+}
 
 function Home() {
   const [weatherinfo, setWeatherinfo] = useState([]);
@@ -18,11 +36,11 @@ function Home() {
 
   const onSearchHandler = (event) => {
     event.preventDefault();
-    const searchString = event.target.searchString.value;
+    const city = event.target.searchString.value;
 
     axios
-      .get("http://127.0.0.1:8000/api/v1/search", {
-        params: { city: searchString },
+      .get(setUrl() + "api/v1/search", {
+        params: { city },
       })
       .then((res) => {
         if (res.status === 200) {
@@ -31,8 +49,8 @@ function Home() {
       })
       .catch(function (error) {
         if (error.response) {
-          console.log(error.response.data);
-          console.log(error.response.status);
+          Sentry.captureException(error.response.data);
+          Sentry.captureException(error.response.status);
         }
       });
   };
@@ -40,7 +58,7 @@ function Home() {
   const handleLogout = (event) => {
     event.preventDefault();
     axios
-      .get("http://127.0.0.1:8000/api/v1/logout")
+      .get(setUrl() + "api/v1/logout")
       .then((res) => {
         if (res.status === 200) {
           alert("Logged out Successfully");
@@ -50,8 +68,8 @@ function Home() {
       })
       .catch(function (error) {
         if (error.response) {
-          console.log(error.response.data);
-          console.log(error.response.status);
+          Sentry.captureException(error.response.data);
+          Sentry.captureException(error.response.status);
         }
       });
   };
@@ -74,8 +92,7 @@ function Home() {
   if (isLoggedIn()) {
     return (
       <div>
-        <br />
-        <Row>
+        <Row className="main">
           <Col xs={11}></Col>
           <Col xs={1}>
             <Button variant="primary" id="logout" onClick={handleLogout}>
@@ -105,9 +122,7 @@ function Home() {
                 </InputGroup>
               </Form>
 
-              <div>
-                <br />
-                <br />
+              <div className="weather_info">
                 {weatherinfo.map((data) => {
                   return (
                     <div>
